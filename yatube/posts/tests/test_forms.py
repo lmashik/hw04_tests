@@ -1,9 +1,9 @@
-from ..forms import PostForm
-from ..models import Post, Group
-from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from django.contrib.auth import get_user_model
+
+from ..forms import PostForm
+from ..models import Post, Group
 
 user = User = get_user_model()
 
