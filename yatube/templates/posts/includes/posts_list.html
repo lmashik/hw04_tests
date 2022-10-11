@@ -1,0 +1,27 @@
+<article>
+  <ul>
+    {% if 'profile' not in request.path %}
+      <li>
+        Автор: {{ post.author.get_full_name }}
+        <a href="{% url 'posts:profile' post.author %}">
+          все посты пользователя
+        </a>
+      </li>
+    {% endif %}
+    <li>
+      Дата публикации: {{ post.pub_date|date:"d E Y" }}
+    </li>
+  </ul>
+  <p>{{ post.text|linebreaksbr }}</p>
+  <a href="{% url 'posts:post_detail' post.id %}">
+    подробная информация
+  </a>
+</article>
+{% if post.group %}
+  <p>
+    все записи группы
+    <a href="{% url 'posts:group_list' post.group.slug %}">
+      {{ post.group.title }}
+    </a>
+  </p>
+{% endif %}
