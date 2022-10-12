@@ -63,13 +63,12 @@ class ViewsTest(TestCase):
                 response = self.authorized_author.get(reverse_name)
                 self.assertTemplateUsed(response, template)
 
-    # Функция для сравнения списков постов и их первых элементов
-    # (для главной страницы, страниц групп и профилей пользователей)
+    # Функция для сравнения первых элементов списка постов
+    # на главной странице, страницах групп и профилей пользователей
     def assertAttrEquation(
             self,
-            get_page_object_list,
+            one_object,
     ):
-        one_object = get_page_object_list[0]
         post_text_0 = one_object.text
         author_0 = one_object.author.username
         group_0 = one_object.group.title
@@ -82,8 +81,8 @@ class ViewsTest(TestCase):
         """Шаблон index сформирован с правильным контекстом и атрибуты
         первого поста как ожидается."""
         response = self.authorized_author.get(reverse('posts:index'))
-        get_page_object_list = response.context['page_obj'].object_list
-        self.assertAttrEquation(get_page_object_list)
+        get_object = response.context['page_obj'][0]
+        self.assertAttrEquation(get_object)
 
     # Проверка словаря контекста страницы группы
     def test_group_list_page_show_correct_context(self):
@@ -95,8 +94,8 @@ class ViewsTest(TestCase):
                 kwargs={'slug': self.group.slug}
             )
         )
-        get_page_object_list = response.context['page_obj'].object_list
-        self.assertAttrEquation(get_page_object_list)
+        get_object = response.context['page_obj'][0]
+        self.assertAttrEquation(get_object)
 
     # Проверка словаря контекста страницы профиля
     def test_profile_page_show_correct_context(self):
@@ -108,8 +107,8 @@ class ViewsTest(TestCase):
                 kwargs={'username': self.post_author}
             )
         )
-        get_page_object_list = response.context['page_obj'].object_list
-        self.assertAttrEquation(get_page_object_list)
+        get_object = response.context['page_obj'][0]
+        self.assertAttrEquation(get_object)
 
     # Проверка словаря контекста страницы поста
     def test_post_detail_pages_show_correct_context(self):
@@ -188,15 +187,18 @@ class PaginatorViewsTest(TestCase):
             slug='test-slug',
             description='Тестовое описание группы'
         )
-        all_posts = int(1.5 * settings.POSTS_PER_PAGE)
-        cls.posts_on_second_page = all_posts - settings.POSTS_PER_PAGE
+        cls.all_posts = int(1.5 * settings.POSTS_PER_PAGE)
+        cls.posts_on_second_page = (
+                cls.all_posts
+                - settings.POSTS_PER_PAGE
+        )
         Post.objects.bulk_create(
             Post(
                 author=cls.post_author,
                 group=cls.group,
                 text=f'Тестовый пост №{n} из группы',
             )
-            for n in range(all_posts)
+            for n in range(cls.all_posts)
         )
 
     def setUp(self):
