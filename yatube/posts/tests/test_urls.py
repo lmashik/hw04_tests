@@ -8,7 +8,7 @@ from ..models import Post, Group
 user = User = get_user_model()
 
 
-class TestURLs(TestCase):
+class URLTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
