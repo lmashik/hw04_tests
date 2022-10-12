@@ -13,6 +13,7 @@ class TestURLs(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.post_author = User.objects.create_user(username='Masha')
+        cls.not_author = User.objects.create_user(username='NotAuthor')
         cls.group = Group.objects.create(
             title='Тестовое название группы',
             slug='test-slug',
@@ -25,20 +26,12 @@ class TestURLs(TestCase):
         )
 
     def setUp(self):
-        # Создаем неавторизованный клиент
-        self.guest_client = Client()
-        # Создаем пользователя
-        self.user = User.objects.create_user(username='NoName')
-        # Создаем второй клиент
-        self.authorized_client = Client()
-        # Авторизуем созданного пользователя во втором клиенте
-        self.authorized_client.force_login(self.user)
-        # Создаем третий клиент
-        self.authorized_client_and_author = Client()
-        # Авторизуем автора поста в третьем клиенте
-        self.authorized_client_and_author.force_login(
-            TestURLs.post_author
-        )
+        # Создаем клиент и авторизуем в нем автора поста
+        self.authorized_and_author = Client()
+        self.authorized_and_author.force_login(self.post_author)
+        # Создаем клиент и авторизуем в нем НЕ автора поста
+        self.authorized_not_author = Client()
+        self.authorized_not_author.force_login(self.not_author)
 
     # Проверяем, что для авторизованного автора все страницы доступны и
     # ведут к соответствующим шаблонам
@@ -49,22 +42,22 @@ class TestURLs(TestCase):
         и URL-адреса используют соответствующие шаблоны."""
         url_names_templates = {
             '/': 'posts/index.html',
-            '/group/test-slug/': 'posts/group_list.html',
-            f'/profile/{self.post.author}/': 'posts/profile.html',
+            f'/group/{self.group.slug}/': 'posts/group_list.html',
+            f'/profile/{self.post_author}/': 'posts/profile.html',
             f'/posts/{self.post.pk}/': 'posts/post_detail.html',
             f'/posts/{self.post.pk}/edit/': 'posts/create_post.html',
             '/create/': 'posts/create_post.html',
         }
         for url, template in url_names_templates.items():
             with self.subTest(url=url):
-                response = self.authorized_client_and_author.get(url)
+                response = self.authorized_and_author.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
                 self.assertTemplateUsed(response, template)
 
     # Проверяем, что открытие несуществующей страницы ведет к 404 ошибке
     def test_unexisting_page_url_exists_at_desired_location(self):
         """Страница /unexisting-page/ не существует."""
-        response = self.guest_client.get('/unexisting-page/')
+        response = self.client.get('/unexisting-page/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
     # Проверяем, что неавторизованный пользователь получает редирект
@@ -73,7 +66,7 @@ class TestURLs(TestCase):
         """Страница по адресу /create/ перенаправит анонимного
         пользователя на страницу логина.
         """
-        response = self.guest_client.get('/create/', follow=True)
+        response = self.client.get('/create/', follow=True)
         self.assertRedirects(
             response, '/auth/login/?next=/create/'
         )
@@ -82,7 +75,7 @@ class TestURLs(TestCase):
         """Страница по адресу /posts/<post_id>/edit/ перенаправит
         анонимного пользователя на страницу логина.
         """
-        response = self.guest_client.get(
+        response = self.client.get(
             f'/posts/{self.post.id}/edit/',
             follow=True
         )
@@ -95,7 +88,7 @@ class TestURLs(TestCase):
             self):
         """Страница по адресу /posts/<post_id>/edit/ перенаправит не
         автора на страницу поста."""
-        response = self.authorized_client.get(
+        response = self.authorized_not_author.get(
             f'/posts/{self.post.id}/edit/',
             follow=True
         )
