@@ -15,7 +15,10 @@ class Group(models.Model):
         unique=True,
         help_text='Enter unique slug, please.'
     )
-    description = models.TextField('Описание группы')
+    description = models.TextField(
+        'Описание группы',
+        help_text='Enter the group description, please.'
+    )
 
     class Meta:
         verbose_name_plural = 'Группы'
