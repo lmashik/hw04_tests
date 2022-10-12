@@ -189,8 +189,8 @@ class PaginatorViewsTest(TestCase):
         )
         cls.all_posts = int(1.5 * settings.POSTS_PER_PAGE)
         cls.posts_on_second_page = (
-                cls.all_posts
-                - settings.POSTS_PER_PAGE
+            cls.all_posts
+            - settings.POSTS_PER_PAGE
         )
         Post.objects.bulk_create(
             Post(
