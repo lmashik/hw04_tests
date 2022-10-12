@@ -44,8 +44,8 @@ class PostFormTest(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text='Еще один тестовый текст',
-                group=self.group.id,
+                text=form_data['text'],
+                group=form_data['group'],
                 author=self.post_author.id
             ).exists()
         )
@@ -79,6 +79,8 @@ class PostFormTest(TestCase):
         )
         self.assertEqual(Post.objects.count(), posts_count)
         # self.assertEqual(Post.objects.last(), self.post)
+        # возможно, строка выше сгодилась бы вместо строк ниже,
+        # но в комментарии бросилось в глаза "все атрибуты"
         last_post = Post.objects.last()
         last_post_text = last_post.text
         last_post_author = last_post.author
