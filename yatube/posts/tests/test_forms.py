@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..forms import PostForm
 from ..models import Post, Group
 
 user = User = get_user_model()
@@ -18,26 +17,17 @@ class TestForm(TestCase):
             slug='test-slug',
             description='Тестовое описание группы'
         )
-        cls.post = Post.objects.create(
-            text='Тестовый пост о самых разных интересных вещах!',
-            author=cls.post_author,
-            group=cls.group
-        )
-        # Создаем форму
-        cls.form = PostForm()
 
     def setUp(self):
-        # Создаем авторизованный клиент
         self.authorized_client = Client()
-        self.authorized_client.force_login(TestForm.post_author)
+        self.authorized_client.force_login(self.post_author)
 
     def test_create_post(self):
         """Валидная форма создает пост."""
-        # Подсчитаем количество постов
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Еще один тестовый текст',
-            'group': f'{self.group.id}',
+            'group': self.group.id,
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
@@ -48,32 +38,34 @@ class TestForm(TestCase):
             response,
             reverse(
                 'posts:profile',
-                kwargs={'username': f'{self.post_author}'}
+                kwargs={'username': self.post_author}
             )
         )
-        # Проверяем, увеличилось ли число постов
         self.assertEqual(Post.objects.count(), posts_count + 1)
-        # Проверяем, что создался пост с указанными текстом и группой
         self.assertTrue(
             Post.objects.filter(
                 text='Еще один тестовый текст',
-                group=f'{self.group.id}',
-                author=f'{self.post_author.id}'
+                group=self.group.id,
+                author=self.post_author.id
             ).exists()
         )
 
     def test_edit_post(self):
         """Валидная форма редактирует пост."""
-        # Подсчитаем количество постов
+        self.post = Post.objects.create(
+            text='Тестовый пост о самых разных интересных вещах!',
+            author=self.post_author,
+            group=self.group
+        )
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Теперь тут такой текст',
-            'group': f'{self.group.id}',
+            'group': self.group.id,
         }
         response = self.authorized_client.post(
             reverse(
                 'posts:post_edit',
-                kwargs={'post_id': f'{self.post.id}'}
+                kwargs={'post_id': self.post.id}
             ),
             data=form_data,
             follow=True
@@ -82,16 +74,16 @@ class TestForm(TestCase):
             response,
             reverse(
                 'posts:post_detail',
-                kwargs={'post_id': f'{self.post.id}'}
+                kwargs={'post_id': self.post.id}
             )
         )
-        # Проверяем, не изменилось ли число постов
         self.assertEqual(Post.objects.count(), posts_count)
-        # Проверяем, что пост отредактирован
-        self.assertTrue(
-            Post.objects.filter(
-                text='Теперь тут такой текст',
-                group=f'{self.group.id}',
-                author=f'{self.post_author.id}'
-            ).exists()
-        )
+        # self.assertEqual(Post.objects.last(), self.post)
+        last_post = Post.objects.last()
+        last_post_text = last_post.text
+        last_post_author = last_post.author
+        last_post_group = last_post.group.id
+
+        self.assertEqual(last_post_text, form_data['text'])
+        self.assertEqual(last_post_group, form_data['group'])
+        self.assertEqual(last_post_author, self.post_author)
