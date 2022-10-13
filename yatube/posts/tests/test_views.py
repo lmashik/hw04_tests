@@ -65,7 +65,7 @@ class ViewsTest(TestCase):
 
     # Функция для сравнения первых элементов списка постов
     # на главной странице, страницах групп и профилей пользователей
-    def assertAttrEquation(
+    def assert_attr_equation(
             self,
             one_object,
     ):
