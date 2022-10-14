@@ -15,7 +15,7 @@
   {% endif %}
 {% endblock %}
 {% block card_body %}
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% load user_filters %}
     {% for field in form %}
