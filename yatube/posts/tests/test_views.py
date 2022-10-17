@@ -1,14 +1,21 @@
+import shutil
+import tempfile
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from ..forms import PostForm
-from ..models import Post, Group
+from ..models import Post, Group, Comment
 
 User = get_user_model()
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class ViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -24,11 +31,30 @@ class ViewsTest(TestCase):
             slug='group-without-post',
             description='Посты добавлялись в группу... но не в эту'
         )
+        post_image = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        cls.uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=post_image,
+            content_type='image/gif'
+        )
         cls.single_post = Post.objects.create(
             text='Это текст моего поста',
             author=cls.post_author,
-            group=cls.group
+            group=cls.group,
+            image=cls.uploaded
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
         # Создаем авторизованный клиент - автора поста
@@ -72,9 +98,11 @@ class ViewsTest(TestCase):
         post_text_0 = one_object.text
         author_0 = one_object.author.username
         group_0 = one_object.group.title
+        image_0 = one_object.image.name
         self.assertEqual(post_text_0, self.single_post.text)
         self.assertEqual(author_0, self.post_author.username)
         self.assertEqual(group_0, self.group.title)
+        self.assertIn(self.uploaded.name, image_0)
 
     # Проверка словаря контекста главной страницы
     def test_index_page_show_correct_context(self):
@@ -82,7 +110,7 @@ class ViewsTest(TestCase):
         первого поста как ожидается."""
         response = self.authorized_author.get(reverse('posts:index'))
         get_object = response.context['page_obj'][0]
-        self.assertAttrEquation(get_object)
+        self.assert_attr_equation(get_object)
 
     # Проверка словаря контекста страницы группы
     def test_group_list_page_show_correct_context(self):
@@ -95,7 +123,7 @@ class ViewsTest(TestCase):
             )
         )
         get_object = response.context['page_obj'][0]
-        self.assertAttrEquation(get_object)
+        self.assert_attr_equation(get_object)
 
     # Проверка словаря контекста страницы профиля
     def test_profile_page_show_correct_context(self):
@@ -108,7 +136,7 @@ class ViewsTest(TestCase):
             )
         )
         get_object = response.context['page_obj'][0]
-        self.assertAttrEquation(get_object)
+        self.assert_attr_equation(get_object)
 
     # Проверка словаря контекста страницы поста
     def test_post_detail_pages_show_correct_context(self):
@@ -176,6 +204,22 @@ class ViewsTest(TestCase):
         group_page_posts = response.context['page_obj']
         self.assertNotIn(post, group_page_posts)
 
+    def test_added_comment_on_post_page(self):
+        """Созданный комментарий появляется на странице поста."""
+        comment = Comment.objects.create(
+            text='Ава зачет!!!',
+            post=self.single_post,
+            author=self.post_author
+        )
+        page = reverse(
+            'posts:post_detail',
+            kwargs={'post_id': self.single_post.id}
+        )
+        self.assertIn(
+            comment,
+            self.authorized_author.get(page).context['comments']
+        )
+        
 
 class PaginatorViewsTest(TestCase):
     @classmethod
@@ -206,21 +250,21 @@ class PaginatorViewsTest(TestCase):
         self.authorized_author = Client()
         self.authorized_author.force_login(self.post_author)
 
-    def test_index_first_page_contains_ten_records(self):
+    def test_index_first_page_contains_ten_posts(self):
         response = self.client.get(reverse('posts:index'))
         self.assertEqual(
             len(response.context['page_obj']),
             settings.POSTS_PER_PAGE
         )
 
-    def test_index_second_page_contains_three_records(self):
+    def test_index_second_page_contains_three_posts(self):
         response = self.client.get(reverse('posts:index') + '?page=2')
         self.assertEqual(
             len(response.context['page_obj']),
             self.posts_on_second_page
         )
 
-    def test_group_first_page_contains_ten_records(self):
+    def test_group_first_page_contains_ten_posts(self):
         response = self.client.get(reverse(
             'posts:group_list',
             kwargs={'slug': self.group.slug}
@@ -230,7 +274,7 @@ class PaginatorViewsTest(TestCase):
             settings.POSTS_PER_PAGE
         )
 
-    def test_group_second_page_contains_three_records(self):
+    def test_group_second_page_contains_three_posts(self):
         response = self.client.get(reverse(
             'posts:group_list',
             kwargs={'slug': self.group.slug}) + '?page=2')
@@ -239,7 +283,7 @@ class PaginatorViewsTest(TestCase):
             self.posts_on_second_page
         )
 
-    def test_profile_first_page_contains_ten_records(self):
+    def test_profile_first_page_contains_ten_posts(self):
         response = self.client.get(reverse(
             'posts:profile',
             kwargs={'username': self.post_author}
@@ -249,8 +293,7 @@ class PaginatorViewsTest(TestCase):
             settings.POSTS_PER_PAGE
         )
 
-    def test_profile_second_page_contains_three_records(self):
-        # Проверка: на второй странице должно быть три поста.
+    def test_profile_second_page_contains_three_posts(self):
         response = self.client.get(reverse(
             'posts:profile',
             kwargs={'username': self.post_author}) + '?page=2')

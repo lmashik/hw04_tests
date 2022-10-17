@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import Group, Post
+from ..models import Group, Post, Comment
 
 User = get_user_model()
 
@@ -104,5 +104,61 @@ class GroupModelTest(TestCase):
             with self.subTest(field=field):
                 self.assertEqual(
                     group._meta.get_field(field).help_text,
+                    expected_value
+                )
+
+
+class CommentModelTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth')
+        cls.post = Post.objects.create(
+            author=cls.user,
+            text='Тестовый пост о самых разных интересных вещах!',
+        )
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user,
+            text='Ава зачет!'
+        )
+
+    def test_comment_model_str_method(self):
+        """Проверяем, что у модели Comment
+        корректно работает __str__."""
+        text = str(self.comment)
+        self.assertEqual(
+            text,
+            'Ава зачет!',
+            'Неправильно работает str в модели Comment'
+        )
+
+    def test_comment_verbose_names(self):
+        """verbose_name в полях совпадает с ожидаемым."""
+        comment = self.comment
+        field_verboses = {
+            'text': 'Комментарий',
+            'created': 'Дата комментария',
+            'author': 'Автор',
+            'post': 'Пост'
+        }
+        for field, expected_value in field_verboses.items():
+            with self.subTest(field=field):
+                self.assertEqual(
+                    comment._meta.get_field(field).verbose_name,
+                    expected_value
+                )
+
+    def test_comment_help_texts(self):
+        """help_text в полях совпадает с ожидаемым."""
+        comment = self.comment
+        field_help_texts = {
+            'text': 'Оставьте свой комментарий',
+            'created': 'Default value: now',
+        }
+        for field, expected_value in field_help_texts.items():
+            with self.subTest(field=field):
+                self.assertEqual(
+                    comment._meta.get_field(field).help_text,
                     expected_value
                 )

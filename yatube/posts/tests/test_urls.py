@@ -94,3 +94,18 @@ class URLTest(TestCase):
         )
         self.assertRedirects(
             response, f'/posts/{self.post.id}/')
+
+    def test_post_detail_comment_page_url_redirect_anonymous_on_login(
+            self
+    ):
+        """Страница по адресу /posts/<post_id>/comment/ перенаправит
+        анонимного пользователя на страницу логина.
+        """
+        response = self.client.get(
+            f'/posts/{self.post.id}/comment/',
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            f'/auth/login/?next=/posts/{self.post.id}/comment/'
+        )
