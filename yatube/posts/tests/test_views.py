@@ -219,7 +219,7 @@ class ViewsTest(TestCase):
             comment,
             self.authorized_author.get(page).context['comments']
         )
-        
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
