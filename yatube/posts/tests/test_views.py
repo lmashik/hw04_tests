@@ -50,6 +50,11 @@ class ViewsTest(TestCase):
             group=cls.group,
             image=cls.uploaded
         )
+        cls.comment = Comment.objects.create(
+            text='Ава зачет!!!',
+            post=cls.single_post,
+            author=cls.post_author
+        )
 
     @classmethod
     def tearDownClass(cls):
@@ -206,17 +211,29 @@ class ViewsTest(TestCase):
 
     def test_added_comment_on_post_page(self):
         """Созданный комментарий появляется на странице поста."""
-        comment = Comment.objects.create(
-            text='Ава зачет!!!',
-            post=self.single_post,
-            author=self.post_author
-        )
         page = reverse(
             'posts:post_detail',
             kwargs={'post_id': self.single_post.id}
         )
         self.assertIn(
-            comment,
+            self.comment,
+            self.authorized_author.get(page).context['comments']
+        )
+
+    def test_added_comment_not_on_another_post_page(self):
+        """Созданный комментарий не появляется на странице
+        другого поста."""
+        another_post = Post.objects.create(
+            text='Привет, мир!',
+            author=self.post_author,
+            group=self.group
+        )
+        page = reverse(
+            'posts:post_detail',
+            kwargs={'post_id': another_post.id}
+        )
+        self.assertNotIn(
+            self.comment,
             self.authorized_author.get(page).context['comments']
         )
 

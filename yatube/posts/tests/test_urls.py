@@ -95,6 +95,20 @@ class URLTest(TestCase):
         self.assertRedirects(
             response, f'/posts/{self.post.id}/')
 
+    def test_post_detail_comment_page_url_redirect_auth_on_post_detail(
+            self
+    ):
+        """Страница по адресу /posts/<post_id>/comment/ перенаправит
+        авторизованного пользователя на страницу поста."""
+        response = self.authorized_not_author.get(
+            f'/posts/{self.post.id}/comment/',
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            f'/posts/{self.post.id}/'
+        )
+
     def test_post_detail_comment_page_url_redirect_anonymous_on_login(
             self
     ):

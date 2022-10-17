@@ -25,17 +25,16 @@ class PostFormTest(TestCase):
             slug='test-slug',
             description='Тестовое описание группы'
         )
-        post_image = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
-        )
         cls.uploaded = SimpleUploadedFile(
             name='small.gif',
-            content=post_image,
+            content=(
+                b'\x47\x49\x46\x38\x39\x61\x02\x00'
+                b'\x01\x00\x80\x00\x00\x00\x00\x00'
+                b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+                b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+                b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+                b'\x0A\x00\x3B'
+            ),
             content_type='image/gif'
         )
 
@@ -48,9 +47,9 @@ class PostFormTest(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.post_author)
 
-    @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
     def test_create_post(self):
         """Валидная форма создает пост."""
+        posts_count = Post.objects.count()
         form_data = {
             'text': 'Еще один тестовый текст',
             'group': self.group.id,
@@ -68,21 +67,21 @@ class PostFormTest(TestCase):
                 kwargs={'username': self.post_author}
             )
         )
-        self.assertEqual(Post.objects.count(), 1)
-        # post = Post.objects.last()
-        # self.assertEqual(post.author, self.post_author)
-        # self.assertEqual(post.text, form_data['text'])
-        # self.assertEqual(post.group.id, form_data['group'])
-        # self.assertIn(form_data['image'].name, post.image.name)
+        self.assertEqual(Post.objects.count(), posts_count + 1)
+        post = Post.objects.last()
+        self.assertEqual(post.author, self.post_author)
+        self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.group.id, form_data['group'])
+        self.assertIn(form_data['image'].name, post.image.name)
 
-        self.assertTrue(
-            Post.objects.filter(
-                text=form_data['text'],
-                group=form_data['group'],
-                author=self.post_author.id,
-                image=form_data['image']
-            ).exists()
-        )
+        # self.assertTrue(
+        #     Post.objects.filter(
+        #         text=form_data['text'],
+        #         group=form_data['group'],
+        #         author=self.post_author.id,
+        #         image=form_data['image']
+        #     ).exists()
+        # )
 
     def test_edit_post(self):
         """Валидная форма редактирует пост."""
@@ -114,9 +113,6 @@ class PostFormTest(TestCase):
             )
         )
         self.assertEqual(Post.objects.count(), posts_count)
-        # self.assertEqual(Post.objects.last(), self.post)
-        # возможно, строка выше сгодилась бы вместо строк ниже,
-        # но в комментарии бросилось в глаза "все атрибуты"
         last_post = Post.objects.last()
         last_post_text = last_post.text
         last_post_author = last_post.author
@@ -126,7 +122,7 @@ class PostFormTest(TestCase):
         self.assertEqual(last_post_text, form_data['text'])
         self.assertEqual(last_post_group, form_data['group'])
         self.assertEqual(last_post_author, self.post_author)
-        self.assertEqual(last_post_image, self.uploaded)
+        self.assertIn(form_data['image'].name, last_post_image)
 
 
 class CommentFormTest(TestCase):
