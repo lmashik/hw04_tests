@@ -3,6 +3,7 @@ import tempfile
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -73,15 +74,6 @@ class PostFormTest(TestCase):
         self.assertEqual(post.text, form_data['text'])
         self.assertEqual(post.group.id, form_data['group'])
         self.assertIn(form_data['image'].name, post.image.name)
-
-        # self.assertTrue(
-        #     Post.objects.filter(
-        #         text=form_data['text'],
-        #         group=form_data['group'],
-        #         author=self.post_author.id,
-        #         image=form_data['image']
-        #     ).exists()
-        # )
 
     def test_edit_post(self):
         """Валидная форма редактирует пост."""

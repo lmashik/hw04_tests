@@ -243,19 +243,21 @@ class ViewsTest(TestCase):
         """После удаления поста он находится в кэше
         до принудительной чистки."""
         index_page = reverse('posts:index')
-        post = Post.objects.create(
-            author=self.post_author,
-            group=self.group,
-            text='Опять нам нужен дополнительный пост'
-        )
         first_response = self.authorized_author.get(index_page)
-        first = len(first_response.content)
-        post.delete()
+        # post = Post.objects.create(
+        #     author=self.post_author,
+        #     group=self.group,
+        #     text='Опять нам нужен дополнительный пост'
+        # )
+        self.single_post.delete()
         second_response = self.authorized_author.get(index_page)
-        second = len(second_response.content)
-        self.assertEqual(first, second)
+        self.assertEqual(
+            first_response.content,
+            second_response.content
+        )
         cache.clear()
-        self.assertEqual(Post.objects.count(), 1)
+        third_response = self.authorized_author.get(index_page)
+        self.assertEqual(third_response.content, first_response.content)
 
 
 class PaginatorViewsTest(TestCase):
