@@ -3,6 +3,7 @@ import tempfile
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -63,6 +64,7 @@ class ViewsTest(TestCase):
 
     def setUp(self):
         # Создаем авторизованный клиент - автора поста
+        cache.clear()
         self.authorized_author = Client()
         self.authorized_author.force_login(self.post_author)
 
@@ -237,6 +239,24 @@ class ViewsTest(TestCase):
             self.authorized_author.get(page).context['comments']
         )
 
+    def test_cache_on_index_page(self):
+        """После удаления поста он находится в кэше
+        до принудительной чистки."""
+        index_page = reverse('posts:index')
+        post = Post.objects.create(
+            author=self.post_author,
+            group=self.group,
+            text='Опять нам нужен дополнительный пост'
+        )
+        first_response = self.authorized_author.get(index_page)
+        first = len(first_response.content)
+        post.delete()
+        second_response = self.authorized_author.get(index_page)
+        second = len(second_response.content)
+        self.assertEqual(first, second)
+        cache.clear()
+        self.assertEqual(Post.objects.count(), 1)
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
@@ -263,6 +283,7 @@ class PaginatorViewsTest(TestCase):
         )
 
     def setUp(self):
+        cache.clear()
         # Создаем клиент и авторизуем в нем автора поста
         self.authorized_author = Client()
         self.authorized_author.force_login(self.post_author)

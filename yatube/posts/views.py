@@ -1,14 +1,16 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
+from django.views.decorators.cache import cache_page
 
 from .forms import PostForm, CommentForm
 from .models import Group, Post, User, Comment
 from .utils import get_page_obj
 
 
+@cache_page(20, key_prefix='index_page')
 def index(request):
     template = 'posts/index.html'
-    posts = Post.objects.all()
+    posts = Post.objects.select_related('author').all()
     page_obj = get_page_obj(request, posts)
     context = {
         'page_obj': page_obj

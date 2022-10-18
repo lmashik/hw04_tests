@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
+from django.core.cache import cache
 
 from ..models import Post, Group
 
@@ -26,6 +27,7 @@ class URLTest(TestCase):
         )
 
     def setUp(self):
+        cache.clear()
         # Создаем клиент и авторизуем в нем автора поста
         self.authorized_and_author = Client()
         self.authorized_and_author.force_login(self.post_author)
