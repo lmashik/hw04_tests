@@ -56,14 +56,17 @@ class URLTest(TestCase):
                 self.assertEqual(response.status_code, HTTPStatus.OK)
                 self.assertTemplateUsed(response, template)
 
-    # Проверяем, что открытие несуществующей страницы ведет к 404 ошибке
-    def test_unexisting_page_url_exists_at_desired_location(self):
+    def test_unexisting_page_url_exists_at_desired_location_(self):
         """Страница /unexisting-page/ не существует."""
         response = self.client.get('/unexisting-page/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-    # Проверяем, что неавторизованный пользователь получает редирект
-    # на страницах создания и редактирования поста
+    def test_unexisting_page_url_use_correct_template(self):
+        """Страница /unexisting-page/ использует кастомный шаблон."""
+        response = self.client.get('/unexisting-page/')
+        template = 'core/404.html'
+        self.assertTemplateUsed(response, template)
+
     def test_create_post_page_url_redirect_anonymous_on_login(self):
         """Страница по адресу /create/ перенаправит анонимного
         пользователя на страницу логина.
