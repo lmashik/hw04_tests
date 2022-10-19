@@ -80,26 +80,11 @@ class PostFormTest(TestCase):
         self.post = Post.objects.create(
             text='Тестовый пост о самых разных интересных вещах!',
             author=self.post_author,
-            group=self.group,
-            image=self.uploaded
         )
         posts_count = Post.objects.count()
-        uploaded_2 = SimpleUploadedFile(
-            name='small2.gif',
-            content=(
-                b'\x49\x47\x46\x38\x39\x61\x02\x00'
-                b'\x01\x00\x80\x00\x00\x00\x00\x00'
-                b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-                b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-                b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-                b'\x0A\x3B\x00'
-            ),
-            content_type='image/gif'
-        )
         form_data = {
             'text': 'Теперь тут такой текст',
             'group': self.group.id,
-            'image': uploaded_2
         }
         response = self.authorized_client.post(
             reverse(
@@ -121,12 +106,10 @@ class PostFormTest(TestCase):
         last_post_text = last_post.text
         last_post_author = last_post.author
         last_post_group = last_post.group.id
-        last_post_image = last_post.image
 
         self.assertEqual(last_post_text, form_data['text'])
         self.assertEqual(last_post_group, form_data['group'])
         self.assertEqual(last_post_author, self.post_author)
-        self.assertIn(form_data['image'].name, last_post_image)
 
 
 class CommentFormTest(TestCase):
