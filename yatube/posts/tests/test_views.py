@@ -9,7 +9,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from ..forms import PostForm
-from ..models import Post, Group, Comment
+from ..models import Post, Group, Comment, Follow
 
 User = get_user_model()
 
@@ -21,6 +21,7 @@ class ViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.user = User.objects.create_user(username='Valera')
         cls.post_author = User.objects.create_user(username='Masha')
         cls.group = Group.objects.create(
             title='Тестовое название группы',
@@ -55,6 +56,10 @@ class ViewsTest(TestCase):
             text='Ава зачет!!!',
             post=cls.single_post,
             author=cls.post_author
+        )
+        cls.follower = Follow.objects.create(
+            user=cls.post_author,
+            author=cls.user
         )
 
     @classmethod
@@ -244,12 +249,12 @@ class ViewsTest(TestCase):
         до принудительной чистки."""
         index_page = reverse('posts:index')
         first_response = self.authorized_author.get(index_page)
-        # post = Post.objects.create(
-        #     author=self.post_author,
-        #     group=self.group,
-        #     text='Опять нам нужен дополнительный пост'
-        # )
-        self.single_post.delete()
+        post = Post.objects.create(
+            author=self.post_author,
+            group=self.group,
+            text='Опять нам нужен дополнительный пост'
+        )
+        post.delete()
         second_response = self.authorized_author.get(index_page)
         self.assertEqual(
             first_response.content,
@@ -258,6 +263,42 @@ class ViewsTest(TestCase):
         cache.clear()
         third_response = self.authorized_author.get(index_page)
         self.assertEqual(third_response.content, first_response.content)
+
+    def test_auth_user_follow_another(self):
+        """Авторизованный пользователь может подписываться
+        на другого пользователя."""
+        page = reverse(
+            'posts:profile',
+            kwargs={'username': self.user.username}
+        )
+        response = self.authorized_author.get(page)
+        self.assertTrue(response.context['following'])
+
+    def test_auth_user_unfollow_another(self):
+        """Авторизованный пользователь может отписаться
+        от другого пользователя."""
+        self.follower.delete()
+        page = reverse(
+            'posts:profile',
+            kwargs={'username': self.user.username}
+        )
+        response = self.authorized_author.get(page)
+        self.assertFalse(response.context['following'])
+
+    def test_follower_sees_post_on_follow_index_page(self):
+        """Подписанный пользователь видит пост в избранном."""
+        some_post = Post.objects.create(
+            text='я, user, тоже пишу посты',
+            author=self.user
+        )
+        page = reverse('posts:follow_index')
+        response = self.authorized_author.get(page)
+        self.assertIn(some_post, response.context['page_obj'])
+
+    def test_not_follower_doesnt_see_post_on_follow_index_page(self):
+        page = reverse('posts:follow_index')
+        response = self.authorized_author.get(page)
+        self.assertNotIn(self.single_post, response.context['page_obj'])
 
 
 class PaginatorViewsTest(TestCase):

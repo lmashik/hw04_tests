@@ -49,6 +49,7 @@ class URLTest(TestCase):
             f'/posts/{self.post.pk}/': 'posts/post_detail.html',
             f'/posts/{self.post.pk}/edit/': 'posts/create_post.html',
             '/create/': 'posts/create_post.html',
+            '/follow/': 'posts/follow_index.html',
         }
         for url, template in url_names_templates.items():
             with self.subTest(url=url):
@@ -128,3 +129,59 @@ class URLTest(TestCase):
             response,
             f'/auth/login/?next=/posts/{self.post.id}/comment/'
         )
+
+    def test_follow_profile_page_url_redirect_anonymous_on_login(self):
+        """Страница по адресу /profile/<username>/follow/ перенаправит
+        анонимного пользователя на страницу логина."""
+        response = self.client.get(
+            f'/profile/{self.post_author.username}/follow/',
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            (f'/auth/login/?next='
+             f'/profile/{self.post_author.username}/follow/')
+        )
+
+    def test_unfollow_profile_page_url_redirect_anonymous_on_login(
+            self
+    ):
+        """Страница по адресу /profile/<username>/unfollow/ перенаправит
+        анонимного пользователя на страницу логина."""
+        response = self.client.get(
+            f'/profile/{self.post_author.username}/unfollow/',
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            (f'/auth/login/?next='
+             f'/profile/{self.post_author.username}/unfollow/')
+        )
+
+    def test_follow_profile_page_url_redirect_auth_on_profile_page(
+            self
+    ):
+        """Страница по адресу /profile/<username>/follow/ перенаправит
+        подписавшегося авторизованного пользователя
+        на страницу автора."""
+        response = self.authorized_not_author.get(
+            f'/profile/{self.post_author.username}/follow/',
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            f'/profile/{self.post_author.username}/')
+
+    def test_unfollow_profile_page_url_redirect_anonymous_on_login(
+            self
+    ):
+        """Страница по адресу /profile/<username>/unfollow/ перенаправит
+        отписавшегося авторизованного пользователя
+        на страницу автора."""
+        response = self.authorized_not_author.get(
+            f'/profile/{self.post_author.username}/unfollow/',
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            f'/profile/{self.post_author.username}/')

@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import Group, Post, Comment
+from ..models import Group, Post, Comment, Follow
 
 User = get_user_model()
 
@@ -160,5 +160,32 @@ class CommentModelTest(TestCase):
             with self.subTest(field=field):
                 self.assertEqual(
                     comment._meta.get_field(field).help_text,
+                    expected_value
+                )
+
+
+class FollowModelTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user_author = User.objects.create_user(username='Petya')
+        cls.user_user = User.objects.create_user(username='Vasya')
+        cls.follow = Follow.objects.create(
+            user=cls.user_user,
+            author=cls.user_author
+        )
+
+    def test_comment_verbose_names(self):
+        """verbose_name в полях совпадает с ожидаемым."""
+        follow = self.follow
+        field_verboses = {
+            'user': 'Подписчик',
+            'author': 'Автор постов'
+        }
+        for field, expected_value in field_verboses.items():
+            with self.subTest(field=field):
+                self.assertEqual(
+                    follow._meta.get_field(
+                        field).verbose_name,
                     expected_value
                 )

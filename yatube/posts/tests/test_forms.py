@@ -84,10 +84,22 @@ class PostFormTest(TestCase):
             image=self.uploaded
         )
         posts_count = Post.objects.count()
+        uploaded_2 = SimpleUploadedFile(
+            name='small2.gif',
+            content=(
+                b'\x49\x47\x46\x38\x39\x61\x02\x00'
+                b'\x01\x00\x80\x00\x00\x00\x00\x00'
+                b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+                b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+                b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+                b'\x0A\x3B\x00'
+            ),
+            content_type='image/gif'
+        )
         form_data = {
             'text': 'Теперь тут такой текст',
             'group': self.group.id,
-            'image': self.uploaded
+            'image': uploaded_2
         }
         response = self.authorized_client.post(
             reverse(
